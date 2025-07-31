@@ -458,6 +458,8 @@ export class GraphViewProvider {
         let dragNode = null;
         let dragStart = { x: 0, y: 0 };
         let nodePositions = {};
+        let justFinishedDragging = false;
+        let actuallyDragged = false;
         
         window.addEventListener('load', () => {
             vscode.postMessage({ type: 'ready' });
@@ -604,6 +606,8 @@ export class GraphViewProvider {
                         line.setAttribute('stroke', 'var(--vscode-panel-border)');
                         line.setAttribute('stroke-width', '2');
                         line.setAttribute('marker-end', 'url(#arrowhead)');
+                        line.setAttribute('data-parent', revision.downRevision);
+                        line.setAttribute('data-child', revision.id);
                         
                         mainGroup.insertBefore(line, g);
                     }
@@ -660,7 +664,7 @@ export class GraphViewProvider {
         
         function handleNodeClick(event, revision) {
             // Don't handle clicks if we just finished dragging
-            if (isDragging) return;
+            if (isDragging || justFinishedDragging) return;
             
             console.log('handleNodeClick called', { 
                 modifyMode, 
@@ -930,6 +934,7 @@ export class GraphViewProvider {
                 event.stopPropagation();
                 isDragging = true;
                 dragNode = revision;
+                actuallyDragged = false;
                 
                 const svg = document.getElementById('graphSvg');
                 const svgRect = svg.getBoundingClientRect();
@@ -991,14 +996,76 @@ export class GraphViewProvider {
                     newNodeY: nodePositions[dragNode.id].y
                 });
                 
-                // Re-render the graph with new positions
-                renderGraph();
+                // Mark that actual dragging occurred
+                actuallyDragged = true;
+                
+                // Update only the dragged node and its connections without full re-render
+                updateNodePosition(dragNode.id, nodePositions[dragNode.id].x, nodePositions[dragNode.id].y);
+            }
+        }
+        
+        function updateNodePosition(nodeId, newX, newY) {
+            const nodeElement = document.querySelector(\`[data-revision-id="\${nodeId}"]\`);
+            if (nodeElement) {
+                nodeElement.setAttribute('transform', \`translate(\${newX}, \${newY})\`);
+                
+                // Update all lines connected to this node
+                updateConnectedLines(nodeId);
+            }
+        }
+        
+        function updateConnectedLines(nodeId) {
+            const nodeWidth = 180;
+            const nodeHeight = 60;
+            
+            // Update lines where this node is the parent (lines going FROM this node)
+            revisions.forEach(revision => {
+                if (revision.downRevision === nodeId) {
+                    const line = document.querySelector(\`line[data-parent="\${nodeId}"][data-child="\${revision.id}"]\`);
+                    if (line) {
+                        const parentPos = nodePositions[nodeId];
+                        const childPos = nodePositions[revision.id];
+                        if (parentPos && childPos) {
+                            line.setAttribute('x1', parentPos.x + nodeWidth / 2);
+                            line.setAttribute('y1', parentPos.y);
+                            line.setAttribute('x2', childPos.x + nodeWidth / 2);
+                            line.setAttribute('y2', childPos.y + nodeHeight);
+                        }
+                    }
+                }
+            });
+            
+            // Update lines where this node is the child (lines going TO this node)
+            const thisRevision = revisions.find(r => r.id === nodeId);
+            if (thisRevision && thisRevision.downRevision) {
+                const line = document.querySelector(\`line[data-parent="\${thisRevision.downRevision}"][data-child="\${nodeId}"]\`);
+                if (line) {
+                    const parentPos = nodePositions[thisRevision.downRevision];
+                    const childPos = nodePositions[nodeId];
+                    if (parentPos && childPos) {
+                        line.setAttribute('x1', parentPos.x + nodeWidth / 2);
+                        line.setAttribute('y1', parentPos.y);
+                        line.setAttribute('x2', childPos.x + nodeWidth / 2);
+                        line.setAttribute('y2', childPos.y + nodeHeight);
+                    }
+                }
             }
         }
         
         function handleNodeDragEnd(event) {
             if (isDragging) {
                 isDragging = false;
+                
+                // Only prevent clicks if we actually dragged (moved the node)
+                if (actuallyDragged) {
+                    justFinishedDragging = true;
+                    
+                    // Clear the flag after a short delay to allow click events to be ignored
+                    setTimeout(() => {
+                        justFinishedDragging = false;
+                    }, 100);
+                }
+                
                 if (dragNode) {
                     const draggedElement = document.querySelector(\`[data-revision-id="\${dragNode.id}"]\`);
                     if (draggedElement) {
@@ -1006,6 +1073,7 @@ export class GraphViewProvider {
                     }
                 }
                 dragNode = null;
+                actuallyDragged = false;
             }
         }
     </script>
