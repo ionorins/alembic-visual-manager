@@ -1,0 +1,80 @@
+{
+  "name": "alembic-visual-manager",
+  "displayName": "Alembic Visual Manager",
+  "description": "Visual GUI for managing Alembic database migrations",
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/ionorins/alembic-visual-manager.git"
+  },
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.74.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "alembic",
+    "database",
+    "migrations",
+    "sqlalchemy",
+    "python"
+  ],
+  "activationEvents": [
+    "workspaceContains:alembic.ini"
+  ],
+  "main": "./out/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "alembic.showMigrationGraph",
+        "title": "Show Migration Graph",
+        "category": "Alembic"
+      },
+      {
+        "command": "alembic.createRevision",
+        "title": "Create New Revision",
+        "category": "Alembic"
+      },
+      {
+        "command": "alembic.upgradeToHead",
+        "title": "Upgrade to Head",
+        "category": "Alembic"
+      }
+    ],
+    "configuration": {
+      "title": "Alembic Visual Manager",
+      "properties": {
+        "alembic.iniPath": {
+          "type": "string",
+          "default": "alembic.ini",
+          "description": "Path to the alembic.ini configuration file"
+        },
+        "alembic.scriptPath": {
+          "type": "string",
+          "default": "python",
+          "description": "Path to the Python executable or virtual environment"
+        },
+        "alembic.customArgs": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Custom -x arguments to pass to Alembic commands"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "vscode:prepublish": "npm run compile",
+    "compile": "tsc -p ./",
+    "watch": "tsc -watch -p ./"
+  },
+  "devDependencies": {
+    "@types/node": "18.x",
+    "@types/vscode": "^1.74.0",
+    "typescript": "^4.9.4"
+  }
+}

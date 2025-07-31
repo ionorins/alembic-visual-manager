@@ -1,0 +1,31 @@
+# Compiled output
+out/
+dist/
+*.vsix
+
+# Dependencies
+node_modules/
+
+# Testing
+.vscode-test/
+
+# OS files
+.DS_Store
+*.log
+
+# IDE settings
+.vscode/
+
+# Temporary files
+*.tmp
+*.temp
+
+# Environment variables
+.env
+.env.local
+
+# TypeScript
+*.tsbuildinfo
+
+# Claude Code
+.claude/
